@@ -1,100 +1,69 @@
 # Configuración de un firewall pfSense en VirtualBox
 
-## Descripción
+En esta práctica de **Seguridad y Alta Disponibilidad (ASIR)** he instalado pfSense CE 2.9.0 en VirtualBox y he configurado una red con tres zonas: WAN, LAN y DMZ. Quería practicar cómo separar las redes y controlar el tráfico que puede pasar entre ellas.
 
-En este proyecto he instalado y configurado un firewall pfSense utilizando VirtualBox como entorno de virtualización.
+## Herramientas
 
-Esta práctica la he realizado en el módulo de **Seguridad y Alta Disponibilidad** del Grado Superior de Administración de Sistemas Informáticos en Red (ASIR).
-
-El objetivo ha sido aprender a configurar un firewall, dividir una red en diferentes zonas y controlar las comunicaciones entre ellas.
-
-## Herramientas utilizadas
-
-- pfSense CE 2.9.0
+- pfSense Community Edition 2.9.0
 - Oracle VirtualBox
-- TCP/IP
-- DHCP
-- SSH
-- Firewall Rules
+- TCP/IP, DHCP y SSH
+- Firewall Rules y Network Segmentation
 
-## Esquema de red
+## Configuración de red
 
-Para realizar la práctica he utilizado tres interfaces de red:
+| Interfaz | Dirección | Uso |
+| --- | --- | --- |
+| WAN (`em0`) | `10.0.2.15/24` (DHCP) | Salida por NAT de VirtualBox |
+| LAN (`em2`) | `192.168.50.1/24` | Red de usuarios |
+| DMZ (`em1`) | `10.0.0.1/24` | Red destinada a servidores |
 
-| Interfaz | Dirección IP | Función |
-|---|---|---|
-| WAN (em0) | 10.0.2.15/24 | Conexión a Internet mediante NAT |
-| LAN (em2) | 192.168.50.1/24 | Red interna |
-| DMZ (em1) | 10.0.0.1/24 | Red destinada a servidores |
+En VirtualBox dejé el adaptador 1 en NAT, el 2 en la red interna `DMZ` y el 3 en la red interna `LAN`. Para entrar al panel web desde mi ordenador cambié temporalmente el adaptador de LAN a Host-only; después volví a la configuración de red interna para las capturas de la PAC.
 
-He separado la LAN y la DMZ para poder controlar el tráfico entre ambas mediante pfSense.
+![Adaptador WAN en VirtualBox](screenshots/01-virtualbox-wan.png)
+![Adaptador DMZ en VirtualBox](screenshots/02-virtualbox-dmz.png)
+![Adaptador LAN en VirtualBox](screenshots/03-virtualbox-lan.png)
 
-## Configuración realizada
+## Instalación y asignación de interfaces
 
-### 1. Instalación de pfSense
+Después de instalar pfSense asigné `em0` a WAN, `em2` a LAN y `em1` a OPT1 (que renombré como DMZ). En la consola comprobé que las tres interfaces tenían las IP previstas.
 
-Primero he creado una máquina virtual en VirtualBox y he instalado pfSense CE 2.9.0.
+![Asignación de interfaces](screenshots/04-pfsense-interface-assignment.png)
+![Consola con interfaces configuradas](screenshots/05-pfsense-interfaces-configured.png)
+![Configuración de DMZ](screenshots/06-dmz-static-ip.png)
 
-Después he configurado tres adaptadores de red para separar la conexión a Internet, la red LAN y la DMZ.
+## General Setup
 
-Una vez instalado, he asignado las interfaces y configurado sus direcciones IP.
+En el panel web configuré el hostname `MedialdeaDominguez`, los DNS de Google (`8.8.8.8` y `8.8.4.4`) y desactivé **Override DNS**. Mantuve el acceso al administrador mediante HTTPS.
 
-### 2. Configuración general
+![Configuración general](screenshots/07-general-setup.png)
 
-He accedido al panel de administración web de pfSense desde mi ordenador utilizando una conexión Host-only.
+También revisé la opción **Block private networks and loopback addresses** de la interfaz WAN. En la captura aparece activada. Al utilizar NAT en VirtualBox, conviene revisar esta opción si aparecen problemas de conectividad con redes privadas.
 
-Dentro del apartado **General Setup**, he configurado:
+![RFC1918 en WAN](screenshots/08-rfc1918-wan.png)
 
-- Hostname: `MedialdeaDominguez`
-- DNS principal: `8.8.8.8`
-- DNS secundario: `8.8.4.4`
-- DNS Override: desactivado
+## DHCP Static Mapping
 
-También he mantenido HTTPS para acceder al panel de administración de forma cifrada.
-
-### 3. Reserva de dirección IP mediante DHCP
-
-He creado un **DHCP Static Mapping** para reservar una dirección IP a un cliente de la LAN.
-
-Los datos utilizados han sido:
+En la LAN habilité DHCP con el rango `192.168.50.100`–`192.168.50.199`. Después creé una reserva fuera de ese rango, con estos datos de la práctica:
 
 - MAC: `08:00:27:72:65:E7`
-- IP: `192.168.50.10`
+- IP reservada: `192.168.50.10`
 - Descripción: `MedialdeaDominguezEduardo`
 
-De esta forma, cuando un dispositivo con esa dirección MAC solicite una IP al servidor DHCP, podrá recibir la dirección que he reservado.
+![DHCP en LAN](screenshots/09-dhcp-lan-settings.png)
+![Reserva DHCP](screenshots/10-dhcp-static-mapping.png)
 
-### 4. Configuración de una regla de firewall para SSH
+## Regla SSH de LAN a DMZ
 
-Por último, he creado una regla en la interfaz LAN para permitir conexiones SSH hacia un servidor situado en la DMZ.
+Creé una regla **Pass** en la interfaz **LAN**, con IPv4 y TCP, para permitir el acceso desde `192.168.50.10` al servidor `10.0.0.50` de la DMZ por el puerto **22 (SSH)**.
 
-He utilizado los siguientes parámetros:
+![Regla SSH](screenshots/11-ssh-firewall-rule.png)
 
-| Parámetro | Configuración |
-|---|---|
-| Action | Pass |
-| Interface | LAN |
-| Protocol | TCP |
-| Source | 192.168.50.10 |
-| Destination | 10.0.0.50 |
-| Destination Port | SSH (22) |
+## Comprobaciones y pendientes
 
-Con esta regla he definido qué equipo puede iniciar conexiones SSH hacia el servidor de la DMZ.
+He podido acceder al panel de pfSense desde el equipo anfitrión a través de Host-only, y he comprobado las interfaces y los formularios de configuración.
 
-## Comprobaciones realizadas
-
-Durante la práctica he comprobado que podía acceder al panel web de pfSense desde mi ordenador y que las tres interfaces estaban configuradas con las direcciones IP correspondientes.
-
-También he revisado la reserva DHCP y la regla de filtrado creada.
-
-Me queda pendiente comprobar la conexión SSH real con el servidor Ubuntu de la DMZ y verificar que el cliente recibe la IP reservada mediante DHCP.
-
-## Capturas de pantalla
-
-En la carpeta `screenshots` he organizado las capturas de las configuraciones realizadas durante la práctica.
+**Pendiente:** probar con un cliente que recibe la reserva DHCP y verificar una conexión SSH real al servidor Ubuntu `10.0.0.50`. La regla está configurada, pero no he documentado una conexión SSH satisfactoria.
 
 ## Qué he aprendido
 
-Con esta práctica he podido trabajar con un firewall real en un entorno virtualizado y entender mejor cómo se separan las redes utilizando WAN, LAN y DMZ.
-
-También he practicado la asignación de direcciones IP, las reservas DHCP y la creación de reglas para controlar qué equipos pueden comunicarse entre diferentes redes.
+Esta práctica me ha servido para entender mejor la separación entre WAN, LAN y DMZ, configurar reservas DHCP y definir reglas de tráfico específicas entre equipos y redes.
