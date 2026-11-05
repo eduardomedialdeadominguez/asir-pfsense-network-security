@@ -1,89 +1,100 @@
-# Implementación de un firewall pfSense con WAN, LAN y DMZ
+# Configuración de un firewall pfSense en VirtualBox
 
-## Descripción del proyecto
+## Descripción
 
-Práctica realizada durante el ciclo formativo de Grado Superior en Administración de Sistemas Informáticos en Red (ASIR), en el módulo de Seguridad y Alta Disponibilidad.
+En este proyecto he instalado y configurado un firewall pfSense utilizando VirtualBox como entorno de virtualización.
 
-El objetivo es implementar un firewall pfSense en un entorno virtualizado con Oracle VirtualBox, segmentando la red en tres zonas y configurando mecanismos de control de acceso.
+Esta práctica la he realizado en el módulo de **Seguridad y Alta Disponibilidad** del Grado Superior de Administración de Sistemas Informáticos en Red (ASIR).
 
-## Tecnologías utilizadas
+El objetivo ha sido aprender a configurar un firewall, dividir una red en diferentes zonas y controlar las comunicaciones entre ellas.
 
-- pfSense Community Edition 2.9.0
+## Herramientas utilizadas
+
+- pfSense CE 2.9.0
 - Oracle VirtualBox
 - TCP/IP
-- DHCP (Dynamic Host Configuration Protocol)
-- SSH (Secure Shell)
+- DHCP
+- SSH
 - Firewall Rules
-- Network Segmentation
 
-## Topología de red
+## Esquema de red
 
-La infraestructura se divide en tres redes:
+Para realizar la práctica he utilizado tres interfaces de red:
 
-| Interfaz | Adaptador | Dirección IP | Función |
-|---|---|---|---|
-| WAN | em0 | 10.0.2.15/24 (DHCP) | Acceso a Internet mediante NAT |
-| LAN | em2 | 192.168.50.1/24 | Red interna de usuarios |
-| DMZ | em1 | 10.0.0.1/24 | Red destinada a servidores |
+| Interfaz | Dirección IP | Función |
+|---|---|---|
+| WAN (em0) | 10.0.2.15/24 | Conexión a Internet mediante NAT |
+| LAN (em2) | 192.168.50.1/24 | Red interna |
+| DMZ (em1) | 10.0.0.1/24 | Red destinada a servidores |
 
-## Configuraciones realizadas
+He separado la LAN y la DMZ para poder controlar el tráfico entre ambas mediante pfSense.
 
-### 1. Instalación y configuración de pfSense
+## Configuración realizada
 
-Se instaló pfSense en una máquina virtual de VirtualBox y se asignaron tres interfaces de red independientes para WAN, LAN y DMZ.
+### 1. Instalación de pfSense
 
-### 2. Configuración general del firewall
+Primero he creado una máquina virtual en VirtualBox y he instalado pfSense CE 2.9.0.
 
-Se configuraron los siguientes parámetros:
+Después he configurado tres adaptadores de red para separar la conexión a Internet, la red LAN y la DMZ.
+
+Una vez instalado, he asignado las interfaces y configurado sus direcciones IP.
+
+### 2. Configuración general
+
+He accedido al panel de administración web de pfSense desde mi ordenador utilizando una conexión Host-only.
+
+Dentro del apartado **General Setup**, he configurado:
 
 - Hostname: `MedialdeaDominguez`
 - DNS principal: `8.8.8.8`
 - DNS secundario: `8.8.4.4`
 - DNS Override: desactivado
-- Acceso al panel web mediante HTTPS
 
-### 3. DHCP Static Mapping
+También he mantenido HTTPS para acceder al panel de administración de forma cifrada.
 
-Se creó una reserva DHCP para un cliente de la LAN:
+### 3. Reserva de dirección IP mediante DHCP
 
-- Dirección MAC: `08:00:27:72:65:E7`
-- Dirección IPv4: `192.168.50.10`
+He creado un **DHCP Static Mapping** para reservar una dirección IP a un cliente de la LAN.
+
+Los datos utilizados han sido:
+
+- MAC: `08:00:27:72:65:E7`
+- IP: `192.168.50.10`
 - Descripción: `MedialdeaDominguezEduardo`
 
-Esta configuración permite reservar una dirección IP para un dispositivo identificado por su dirección MAC.
+De esta forma, cuando un dispositivo con esa dirección MAC solicite una IP al servidor DHCP, podrá recibir la dirección que he reservado.
 
-### 4. Regla de filtrado SSH
+### 4. Configuración de una regla de firewall para SSH
 
-Se configuró una regla de firewall con los siguientes parámetros:
+Por último, he creado una regla en la interfaz LAN para permitir conexiones SSH hacia un servidor situado en la DMZ.
 
-| Parámetro | Valor |
+He utilizado los siguientes parámetros:
+
+| Parámetro | Configuración |
 |---|---|
-| Acción | Pass |
-| Interfaz | LAN |
-| Protocolo | TCP |
-| Origen | 192.168.50.10 |
-| Destino | 10.0.0.50 |
-| Puerto de destino | 22 (SSH) |
+| Action | Pass |
+| Interface | LAN |
+| Protocol | TCP |
+| Source | 192.168.50.10 |
+| Destination | 10.0.0.50 |
+| Destination Port | SSH (22) |
 
-La regla está diseñada para permitir conexiones SSH desde el cliente de la LAN al servidor de la DMZ.
+Con esta regla he definido qué equipo puede iniciar conexiones SSH hacia el servidor de la DMZ.
 
-## Verificaciones
+## Comprobaciones realizadas
 
-Se comprobó el acceso al panel web de administración de pfSense desde el equipo anfitrión utilizando una conexión Host-only.
+Durante la práctica he comprobado que podía acceder al panel web de pfSense desde mi ordenador y que las tres interfaces estaban configuradas con las direcciones IP correspondientes.
 
-También se verificó mediante la consola y la interfaz web que las tres interfaces tenían sus direcciones IPv4 configuradas.
+También he revisado la reserva DHCP y la regla de filtrado creada.
 
-**Pruebas pendientes:** comprobar la asignación DHCP desde el cliente especificado y realizar una conexión SSH real contra el servidor de la DMZ.
+Me queda pendiente comprobar la conexión SSH real con el servidor Ubuntu de la DMZ y verificar que el cliente recibe la IP reservada mediante DHCP.
 
-## Evidencias
+## Capturas de pantalla
 
-Las capturas de pantalla de las configuraciones se encuentran en el directorio `screenshots/`.
+En la carpeta `screenshots` he organizado las capturas de las configuraciones realizadas durante la práctica.
 
-## Conocimientos aplicados
+## Qué he aprendido
 
-- Configuración de firewalls.
-- Segmentación de redes.
-- Gestión de interfaces de red.
-- Administración DHCP.
-- Filtrado de tráfico mediante reglas.
-- Control de acceso entre redes internas y DMZ.
+Con esta práctica he podido trabajar con un firewall real en un entorno virtualizado y entender mejor cómo se separan las redes utilizando WAN, LAN y DMZ.
+
+También he practicado la asignación de direcciones IP, las reservas DHCP y la creación de reglas para controlar qué equipos pueden comunicarse entre diferentes redes.
